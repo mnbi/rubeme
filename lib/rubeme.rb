@@ -2,6 +2,7 @@
 
 module Rubeme
   require_relative "rubeme/version"
+  require_relative "rubeme/pair"
   require_relative "rubeme/scm_object"
   # scm_number
   # scm_string
