@@ -37,7 +37,7 @@ module Rubeme
     # Convers to an Array which members are the car part and the cdr
     # part.
     def to_a
-      [@car, @cdr]
+      [@car, @cdr].map { |e| Pair === e ? e.to_a : e}
     end
 
     # Converts to a String represents a notation as a pair in Scheme.
@@ -48,5 +48,6 @@ module Rubeme
         "(#{@car} . #{@cdr})"
       end
     end
+
   end
 end
