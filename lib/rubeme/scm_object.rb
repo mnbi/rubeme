@@ -4,6 +4,24 @@ require "singleton"
 
 module Rubeme
 
+  class << self
+    # Evaluate Scheme object to Ruby object.
+    #
+    # For example,
+    #   - ()             -> nil
+    #   - #f             -> false
+    #   - #t             -> true
+    #   - 123 (number)   -> 123 (Numeric)
+    #   - foo (symbol)   -> :foo (Symbol)
+    #   - "bar"          -> "bar" (String)
+    #     :
+    #     :
+    #
+    def eval(scm_obj)
+      scm_obj.value
+    end
+  end
+
   # ScmObject is a root date type of all Scheme data objects.
   # Following types are deraived from this class.
   #
@@ -57,7 +75,7 @@ module Rubeme
 
     # Returns '#t' (Scheme boolean object) when the object is
     # procedure in Scheme.  Otherwise, returns '#f'.
-    def scm_procedure; SCM_FALSE; end
+    def scm_procedure?; SCM_FALSE; end
 
     # Returns a value as Scheme object.  The method is intended to be
     # called by the evaluator of Scheme.
@@ -65,7 +83,7 @@ module Rubeme
       SCM_EMPTY_LIST
     end
 
-    # Returns ffa Ruby object which generates the Scheme object.
+    # Returns a Ruby object which generates the Scheme object.
     def value
       nil
     end
