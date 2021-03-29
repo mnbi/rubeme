@@ -355,10 +355,71 @@ module Rubeme
 
   end
 
+  # Represents a Scheme vector object.  Scheme vector data is very
+  # similar to Ruby Array class.
   class ScmVector < ScmObject
+    def initialize(scm_num, scm_initial_value = SCM_FALSE)
+      @value = Array.new(scm_num.value, scm_initial_value)
+    end
+
+    # Returns the number of elements as ScmNumeric object.
+    def scm_vector_length
+      Rubeme.rb2scm_numeric(@value.length)
+    end
+
+    # Returns the member indexed with an argument.  The argument must
+    # be a valid index, which means 0 <= index < vector_length.
+    def scm_vector_ref(scm_num)
+      index = scm_num.value
+      if index >= 0 &&  index < @value.length
+        @value[index]
+      else
+        raise ArgumentError, "index out of range: %d" % index
+      end
+    end
+
+    # Replace the member.  The first argument must be a valid index.
+    def scm_vector_set!(scm_num, scm_obj)
+      index = scm_num.value
+      if index >= 0 &&  index < @value.length
+        @value[scm_num.value] = scm_obj
+      else
+        raise ArgumentError, "index out of range: %d" % index
+      end
+    end
+
+    # :stopdoc:
+
     def scm_vector?
       SCM_TRUE
     end
+
+    def scm_value
+      self
+    end
+
+    def value
+      @value.map(&:value)
+    end
+
+    def to_s
+      result = "\#("
+      result += @value.map(&:to_s).join(" ")
+      result += ")"
+    end
+
+    # :startdoc:
+
+    class << self
+      def scm_vector(*scm_objs)
+        sv = ScmVector.new(Rubeme.rb2scm_numeric(scm_objs.length))
+        scm_objs.each_with_index { |e, i|
+          sv.scm_vector_set!(Rubeme.rb2scm_numeric(i), e)
+        }
+        sv
+      end
+    end
+
   end
 
   # not implemented yet
@@ -400,6 +461,7 @@ module Rubeme
       end
       ScmChar.new(ch)
     end
+
   end
 
 end
