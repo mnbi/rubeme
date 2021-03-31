@@ -63,23 +63,6 @@ module Rubeme
       end
     end
 
-    def rb2scm(obj)
-      case obj
-      when NilClass
-        SCM_EMPTY_LIST
-      when FalseClass, TrueClass
-        rb2scm_bool(obj)
-      when Numeric
-        rb2scm_numeric(obj)
-      when Pair
-        rb2scm_pair(obj)
-      when ScmObject
-        obj
-      else
-        raise ArgumentError, "not supported: %s" % obj.class
-      end
-    end
-
     def scm_list?(scm_obj)
       case scm_obj
       when SCM_EMPTY_LIST.class

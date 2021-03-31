@@ -20,6 +20,38 @@ module Rubeme
     def eval(scm_obj)
       scm_obj.value
     end
+
+    # Convert a Ruby object into Scheme object.  When the argument is
+    # a compound class (such as Array), each members of the argument
+    # also convert recursively.
+    #
+    # If the argument (or its menber) cannot convert to one of Scheme
+    # object, an exception will be raised.
+    def rb2scm(obj)
+      case obj
+      when NilClass
+        SCM_EMPTY_LIST
+      when FalseClass, TrueClass
+        rb2scm_bool(obj)
+      when Symbol
+        rb2scm_symbol(obj)
+      when Numeric
+        rb2scm_number(obj)
+      when Char
+        rb2scm_char(obj)
+      when String
+        rb2scm_string(obj)
+      when IO
+        rb2scm_port(obj)
+      when Pair
+        rb2scm_pair(obj)
+      when Array
+        rb2scm_vector(obj)
+      else
+        raise ArgumentError, "not supported: %s" % obj.class
+      end
+    end
+
   end
 
   # ScmObject is a root date type of all Scheme data objects.
@@ -36,6 +68,9 @@ module Rubeme
   #   - ScmProcedure
   #
   # Those classes correspond to one of predicates of Scheme.
+  #
+  # This class is not intended to be instantiated.  Instead, use one
+  # of derived classes.
   class ScmObject
 
     # predicate methods for Scheme objects, those are defined in the
@@ -80,21 +115,23 @@ module Rubeme
     # Returns a value as Scheme object.  The method is intended to be
     # called by the evaluator of Scheme.
     def scm_value
-      SCM_EMPTY_LIST
+      self
     end
 
     # Returns a Ruby object which generates the Scheme object.
     def value
-      nil
+      true
     end
 
     # Returns a String object in Ruby which is intended to be used to
     # display a Scheme object for human beings.
     def to_s
-      nil
+      ""
     end
 
-    # Returns a true of false in Ruby.
+    # Returns a true of false in Ruby.  All instances of ScmObject and
+    # its variantes is evaluated to true, except the ScmFalse
+    # instance.
     def to_bool
       true
     end
@@ -106,8 +143,16 @@ module Rubeme
       include Singleton
 
       def scm_value; self; end  # :nodoc:
-      def value;     nil;  end  # :nodoc:
       def to_s;      "()"; end  # :nodoc:
+
+    end
+
+    # A Scheme value which indicates "unspecified".
+    class ScmUndef < ScmObject
+      include Singleton
+
+      def scm_value; self;        end  # :nodoc:
+      def to_s;      "\#<undef>"; end # :nodoc:
 
     end
 
@@ -115,6 +160,10 @@ module Rubeme
 
   # A constant which holds an empty list in Scheme.
   SCM_EMPTY_LIST = ScmObject::ScmEmptyList.instance
+
+  # A constant which holds an value in Scheme which indicates
+  # "unspecified".
+  SCM_UNDEF = ScmObject::ScmUndef.instance
 
   # Represents a boolean object in Scheme.  Do not instantiate this
   # class.  Instead, use SCM_FALSE or SCM_TRUE those represents '#f'
@@ -140,7 +189,6 @@ module Rubeme
     class ScmTrue < ScmBoolean
       include Singleton
       def value;   true; end
-      def to_bool; true; end
       def to_s;    "#t"; end
     end
 
@@ -160,11 +208,14 @@ module Rubeme
   # characters as same as a string.  However, a symbol is unique.
   # That is, if two symbols are the same sequence of characters, they
   # must be identical.  So, do not instantiate this class with 'new'
-  # method.  Instead, use ScmSymbol::regist.
+  # method.  Instead, use ScmSymbol::register.
   class ScmSymbol < ScmObject
     TABLE = {}
     class << self
-      def regist(s)
+      # Generate an instance of ScmSymbol class.  Each instance is
+      # unique.  The same strings generate an identical ScmSymbol
+      # object.
+      def register(s)
         sym = s.to_sym
         if TABLE.key?(sym)
           TABLE[sym]
@@ -174,9 +225,13 @@ module Rubeme
       end
     end
 
+    private_class_method :new
+
     # :stopdoc:
 
-    private_class_method :new
+    def initialize(sym)
+      @value = sym
+    end
 
     def scm_symbol?
       SCM_TRUE
@@ -192,12 +247,6 @@ module Rubeme
 
     def to_s
       @value.to_s
-    end
-
-    private
-
-    def initialize(sym)
-      @value = sym
     end
 
     # :startdoc:
@@ -276,7 +325,8 @@ module Rubeme
   # Represents a Scheme character object.
   class ScmChar < ScmObject
     def initialize(char)
-      @value = char[0]
+      raise ArgumentError, "not Char object: %s" % char.class unless Char === char
+      @value = char
     end
 
     def scm_char_eq?(other_scm_char)
@@ -300,7 +350,7 @@ module Rubeme
     end
 
     def scm_char_to_integer
-      Rubeme.rb2scm_numeric(@value.ord)
+      Rubeme.rb2scm_number(@value.ord)
     end
 
     # :stopdoc:
@@ -317,7 +367,7 @@ module Rubeme
     end
 
     def to_s
-      "\#\\#{@value}"
+      "\#\\#{@value.codepoint}"
     end
 
     # :sartdoc:
@@ -330,7 +380,19 @@ module Rubeme
     end
 
     def scm_string_length
-      Rubeme::rb2scm_numeric(@value.length)
+      Rubeme.rb2scm_number(@value.length)
+    end
+
+    def scm_string_ref(scm_num)
+      char = Char.new(@value[scm_num.value])
+      Rubeme.rb2scm_char(char)
+    end
+
+    def scm_string_set!(scm_num, scm_char)
+      index = scm_num.value
+      raise ArgumentError, "index out of range: %d" % index unless valid_index?(index)
+      @value[index] = scm_char.value.to_s
+      SCM_UNDEF
     end
 
     # :stopdoc:
@@ -351,6 +413,11 @@ module Rubeme
       @value
     end
 
+    private
+
+    def valid_index?(num)
+      num >= 0 && num < @value.length
+    end
     # :startdoc:
 
   end
@@ -364,7 +431,7 @@ module Rubeme
 
     # Returns the number of elements as ScmNumeric object.
     def scm_vector_length
-      Rubeme.rb2scm_numeric(@value.length)
+      Rubeme.rb2scm_number(@value.length)
     end
 
     # Returns the member indexed with an argument.  The argument must
@@ -412,9 +479,9 @@ module Rubeme
 
     class << self
       def scm_vector(*scm_objs)
-        sv = ScmVector.new(Rubeme.rb2scm_numeric(scm_objs.length))
+        sv = ScmVector.new(Rubeme.rb2scm_number(scm_objs.length))
         scm_objs.each_with_index { |e, i|
-          sv.scm_vector_set!(Rubeme.rb2scm_numeric(i), e)
+          sv.scm_vector_set!(Rubeme.rb2scm_number(i), e)
         }
         sv
       end
@@ -433,6 +500,7 @@ module Rubeme
     end
   end
 
+  # not implemented yet
   class ScmProcedure < ScmObject
     def scm_procedure?
       SCM_TRUE
@@ -445,21 +513,43 @@ module Rubeme
       bool ? SCM_TRUE : SCM_FALSE
     end
 
+    # Converts a Ruby Symbol object to a Scheme symbol object.
+    def rb2scm_symbol(sym)
+      ScmSymbol.register(sym)
+    end
+
     # Converts a Ruby Numeric object to a Scheme number object.
-    def rb2scm_numeric(num)
+    def rb2scm_number(num)
       ScmNumber.new(num)
     end
 
     # Generates a Scheme character object using a Ruby Integer object
     # as its codepoint.
-    def rb2scm_character(integer)
-      ch = nil
-      begin
-        ch = integer.chr
-      rescue RangeError => _
-        ch = integer.chr("UTF-8")
-      end
-      ScmChar.new(ch)
+    def rb2scm_char(char)
+      ScmChar.new(char)
+    end
+
+    # Convert a Ruby String object to a Scheme string object.
+    def rb2scm_string(str)
+      ScmString.new(str)
+    end
+
+    # Convert a Ruby IO object to a Scheme port object.
+    def rb2scm_port(io)
+      # TODO: ...
+      SCM_EMPTY_LIST
+    end
+
+    # Convert a Ruby Array object to a Scheme vector object.  Each
+    # menber of the argument will be also converted to a Scheme
+    # object.
+    def rb2scm_vector(array)
+      length = array.length
+      sv = ScmVector.new(rb2scm_number(length), SCM_FALSE)
+      array.each_with_index { |e, i|
+        sv.scm_vector_set!(rb2scm_number(i), rb2scm(e))
+      }
+      sv
     end
 
   end

@@ -57,23 +57,23 @@ class RubemeScmObjectTest < Minitest::Test
   # symbol
 
   def test_it_can_generate_from_ruby_symbol
-    scm_obj = Rubeme::ScmSymbol.regist(:scm_sym_from_rb_sym)
+    scm_obj = Rubeme::ScmSymbol.register(:scm_sym_from_rb_sym)
     assert_scm_object_class Rubeme::ScmSymbol, scm_obj
   end
 
   def test_it_can_generate_from_ruby_string
-    scm_obj = Rubeme::ScmSymbol.regist("scm_sym_from_rb_string")
+    scm_obj = Rubeme::ScmSymbol.register("scm_sym_from_rb_string")
     assert_scm_object_class Rubeme::ScmSymbol, scm_obj
   end
 
   def test_two_symbols_made_from_the_same_string_are_identical
-    scm_obj = Rubeme::ScmSymbol.regist("scm_sym_001")
-    scm_obj_other = Rubeme::ScmSymbol.regist("scm_sym_001")
+    scm_obj = Rubeme::ScmSymbol.register("scm_sym_001")
+    scm_obj_other = Rubeme::ScmSymbol.register("scm_sym_001")
     assert_same scm_obj, scm_obj_other
   end
 
   def test_symbol_is_scm_symbol
-    scm_obj = Rubeme::ScmSymbol.regist("scm_sym_002")
+    scm_obj = Rubeme::ScmSymbol.register("scm_sym_002")
     assert_scm_object scm_obj.scm_symbol?
   end
 
@@ -107,6 +107,16 @@ class RubemeScmObjectTest < Minitest::Test
     assert_scm_object scm_obj.scm_complex?
     refute_scm_obj scm_obj.scm_integer?
   end
+
+  # char
+
+  # string
+
+  # vector
+
+  # port
+
+  # procedure
 
   private
   def assert_scm_object_class(klass, obj)

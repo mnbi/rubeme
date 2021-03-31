@@ -1,20 +1,8 @@
 # frozen_string_literal: true
 
 module Rubeme
-  # Constructs a structure like 'cons cell' in Scheme.  Use Pair.cons
-  # to instantiate a Pair object instead of Pair.new.
-  #
-  # :call-seq:
-  #     cons(car_obj, cdr_obj) -> Pair
+  # Constructs a structure like 'cons cell' in Scheme.
   class Pair
-    private_class_method :new
-
-    class << self
-      def cons(car, cdr)
-        new(car, cdr)
-      end
-    end
-
     attr_reader :car, :cdr
 
     def initialize(car, cdr)    # :nodoc:
