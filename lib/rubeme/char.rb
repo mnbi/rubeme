@@ -37,6 +37,7 @@ module Rubeme
       rescue RangeError => _
         ch = @codepoint.chr("UTF-8")
       end
+      ch
     end
 
   end

@@ -17,7 +17,7 @@ class RubemeCharTest < Minitest::Test
     refute_nil char
 
     char_ja = Char.new(@ch_a_ja)
-    refute_nil char
+    refute_nil char_ja
   end
 
   def test_it_can_convert_to_string

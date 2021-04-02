@@ -5,7 +5,7 @@ module Rubeme
     private_class_method :new
 
     class << self
-      def cons(scm_car, scm_cdr)
+      def cons(scm_car = SCM_EMPTY_LIST, scm_cdr = SCM_EMPTY_LIST)
         new(scm_car, scm_cdr)
       end
     end
@@ -25,6 +25,16 @@ module Rubeme
 
     def scm_cdr
       @scm_cdr
+    end
+
+    def scm_set_car!(scm_obj)
+      @scm_car = scm_obj
+      SCM_UNDEF
+    end
+
+    def scm_set_cdr!(scm_obj)
+      @scm_cdr = scm_obj
+      SCM_UNDEF
     end
 
     # :stopdoc:
@@ -72,6 +82,14 @@ module Rubeme
       else
         SCM_FALSE
       end
+    end
+
+    def scm_make_list(*scm_objects)
+      return SCM_EMPTY_LIST if scm_objects.size == 0
+      scm_pair = scm_objects.reverse_each.reduce(SCM_EMPTY_LIST) { |r, obj|
+        ScmPair.cons(obj, r)
+      }
+      scm_pair
     end
 
   end
