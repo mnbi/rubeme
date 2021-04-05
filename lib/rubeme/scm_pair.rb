@@ -27,14 +27,48 @@ module Rubeme
       @scm_cdr
     end
 
+    # Replace the CAR part with the given instance of ScmObject.  Then
+    # returns SCM_UNDEF.
     def scm_set_car!(scm_obj)
       @scm_car = scm_obj
       SCM_UNDEF
     end
 
+    # Replace the CDR part with the given instance of ScmObject.  Then
+    # returns SCM_UNDEF.
     def scm_set_cdr!(scm_obj)
       @scm_cdr = scm_obj
       SCM_UNDEF
+    end
+
+    # Returns SCM_TRUE if the given Scheme object is a Scheme list.
+    # Otherwise, returns SCM_FALSE.
+    #
+    # A list structure constructs with ScmPair objects like;
+    #
+    #   (1 . 2)  ... dot pair, NOT a list.
+    #   (1 . ()) ... a list which length is 1.
+    #   (1 . (2 . (3 . ()))) ... a list which length is 3.
+    def scm_list?
+      return SCM_TRUE if Rubeme.null?(@scm_cdr)
+
+      tail = @scm_cdr
+      while tail.is_a?(ScmPair)
+        tail = tail.scm_cdr
+      end
+
+      Rubeme.null?(tail) ? SCM_TRUE : SCM_FALSE
+    end
+
+    # Constructs an Array which consists the CAR part (the 1st
+    # element) and the CDR (the 2nd element) part of the pair.
+    #
+    # The function is intended to be used in a multiple assignment
+    # expression of Ruby.  It will look like:
+    #
+    #   head, tail = scm_pair.scm_decompose
+    def scm_decompose
+      [@scm_car, @scm_cdr]
     end
 
     # :stopdoc:
@@ -47,11 +81,7 @@ module Rubeme
     end
 
     def to_s
-      if scm_cdr.equal?(SCM_EMPTY_LIST)
-        "(#{scm_car})"
-      else
-        "(#{scm_car} . #{scm_cdr})"
-      end
+      "(#{scm_car} . #{scm_cdr})"
     end
     # :startdoc:
   end
@@ -60,36 +90,19 @@ module Rubeme
 
     # Converts a Pair object to a ScmPair object.
     def rb2scm_pair(pair)
-      raise ArgumentError, "not Pair object: %s" % pair.class.to_s unless Pair === pair
+      raise ArgumentError, ("not Pair object: %s" % pair.class.to_s) unless pair.is_a?(Pair)
       car, cdr = pair.to_a
       ScmPair.cons(rb2scm(car), rb2scm(cdr))
     end
 
+    # Converts an Array object to a Scheme list structure.
     def rb2scm_list(array)
       if array.nil?
         SCM_EMPTY_LIST
       else
-        rb2scm_pair([array[0], rb2scm_list(array[1..-1])])
+        m = Rubeme.method(:rb2scm)
+        scm_make_list(*array.map(&m))
       end
-    end
-
-    def scm_list?(scm_obj)
-      case scm_obj
-      when SCM_EMPTY_LIST.class
-        SCM_TRUE
-      when ScmPair
-        scm_list?(scm_obj.scm_cdr)
-      else
-        SCM_FALSE
-      end
-    end
-
-    def scm_make_list(*scm_objects)
-      return SCM_EMPTY_LIST if scm_objects.size == 0
-      scm_pair = scm_objects.reverse_each.reduce(SCM_EMPTY_LIST) { |r, obj|
-        ScmPair.cons(obj, r)
-      }
-      scm_pair
     end
 
   end

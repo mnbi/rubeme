@@ -28,6 +28,8 @@ module Rubeme
       [@car, @cdr].map { |e| Pair === e ? e.to_a : e}
     end
 
+    alias decompose to_a
+
     # Converts to a String represents a notation as a pair in Scheme.
     def to_s
       if @cdr.nil?

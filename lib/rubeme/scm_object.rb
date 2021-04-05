@@ -17,7 +17,7 @@ module Rubeme
     #     :
     #     :
     #
-    def eval(scm_obj)
+    def eval_scm(scm_obj)
       scm_obj.value
     end
 
@@ -47,6 +47,9 @@ module Rubeme
         rb2scm_pair(obj)
       when Array
         rb2scm_vector(obj)
+      when ScmObject
+        # nothing to do, just return
+        obj
       else
         raise ArgumentError, "not supported: %s" % obj.class
       end
@@ -78,39 +81,48 @@ module Rubeme
 
     # Returns '#t' (Scheme boolean object) when the object is boolean
     # in Scheme.  Otherwise, returns '#f'.
-    def scm_boolean?;  SCM_FALSE; end
+    def scm_boolean?;   SCM_FALSE; end
 
     # Returns '#t' (Scheme boolean object) when the object is pair
     # in Scheme.  Otherwise, returns '#f'.
-    def scm_pair?;     SCM_FALSE; end
+    def scm_pair?;      SCM_FALSE; end
 
     # Returns '#t' (Scheme boolean object) when the object is symbol
     # in Scheme.  Otherwise, returns '#f'.
-    def scm_symbol?;   SCM_FALSE; end
+    def scm_symbol?;    SCM_FALSE; end
 
     # Returns '#t' (Scheme boolean object) when the object is number
     # in Scheme.  Otherwise, returns '#f'.
-    def scm_number?;   SCM_FALSE; end
+    def scm_number?;    SCM_FALSE; end
 
     # Returns '#t' (Scheme boolean object) when the object is char
     # in Scheme.  Otherwise, returns '#f'.
-    def scm_char?;     SCM_FALSE; end
+    def scm_char?;      SCM_FALSE; end
 
     # Returns '#t' (Scheme boolean object) when the object is string
     # in Scheme.  Otherwise, returns '#f'.
-    def scm_string?;   SCM_FALSE; end
+    def scm_string?;    SCM_FALSE; end
 
     # Returns '#t' (Scheme boolean object) when the object is vector
     # in Scheme.  Otherwise, returns '#f'.
-    def scm_vector?;   SCM_FALSE; end
+    def scm_vector?;    SCM_FALSE; end
 
     # Returns '#t' (Scheme boolean object) when the object is port
     # in Scheme.  Otherwise, returns '#f'.
-    def scm_port?;     SCM_FALSE; end
+    def scm_port?;      SCM_FALSE; end
 
     # Returns '#t' (Scheme boolean object) when the object is
     # procedure in Scheme.  Otherwise, returns '#f'.
     def scm_procedure?; SCM_FALSE; end
+
+    # Returns '#t' (Scheme boolean object) when the object represents
+    # an empty list.
+    def scm_null?;      SCM_FALSE; end
+
+    # Returns '#t' (Scheme boolean object) when the object represents
+    # a list structure of Scheme.  Note an empty list is also a valid
+    # list in Scheme.
+    def scm_list?;      SCM_FALSE; end
 
     # Returns a value as Scheme object.  The method is intended to be
     # called by the evaluator of Scheme.
@@ -142,8 +154,10 @@ module Rubeme
     class ScmEmptyList < ScmObject
       include Singleton
 
-      def scm_value; self; end  # :nodoc:
-      def to_s;      "()"; end  # :nodoc:
+      def scm_null?; SCM_TRUE; end # :nodoc:
+      def scm_list?; SCM_TRUE; end # :nodoc:
+      def scm_value; self;     end # :nodoc:
+      def to_s;      "()";     end # :nodoc:
 
     end
 

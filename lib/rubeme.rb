@@ -10,6 +10,7 @@ module Rubeme
   # scm_vector
   # scm_procedure
   require_relative "rubeme/scm_pair"
+  require_relative "rubeme/scm_list_operations"
   # scm_expression
   # parser
   # reader
@@ -17,4 +18,8 @@ module Rubeme
   # printer
 
   class Error < StandardError; end
+
+  class << self
+    include ListOperations
+  end
 end
